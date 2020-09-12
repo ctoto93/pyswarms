@@ -34,6 +34,7 @@ class Ring(Topology):
         """
         super(Ring, self).__init__(static)
         self.rep = Reporter(logger=logging.getLogger(__name__))
+        self.neighbor_idx = None
 
     def compute_gbest(self, swarm, p, k, **kwargs):
         """Update the global best using a ring-like neighborhood approach
@@ -61,25 +62,16 @@ class Ring(Topology):
             Best cost
         """
         try:
-            # Check if the topology is static or not and assign neighbors
-            if (self.static and self.neighbor_idx is None) or not self.static:
-                # Obtain the nearest-neighbors for each particle
-                tree = cKDTree(swarm.position)
-                _, self.neighbor_idx = tree.query(swarm.position, p=p, k=k)
 
-            # Map the computed costs to the neighbour indices and take the
-            # argmin. If k-neighbors is equal to 1, then the swarm acts
-            # independently of each other.
-            if k == 1:
-                # The minimum index is itself, no mapping needed.
-                self.neighbor_idx = self.neighbor_idx[:, np.newaxis]
-                best_neighbor = np.arange(swarm.n_particles)
-            else:
-                idx_min = swarm.pbest_cost[self.neighbor_idx].argmin(axis=1)
-                best_neighbor = self.neighbor_idx[
-                    np.arange(len(self.neighbor_idx)), idx_min
-                ]
+            if hasattr(self, 'neighbor_idx'):
+                self.neighbor_idx = self.get_neighbor_indices(swarm, k)
+
             # Obtain best cost and position
+            idx_min = swarm.pbest_cost[self.neighbor_idx].argmin(axis=1)
+            best_neighbor = self.neighbor_idx[
+                np.arange(len(self.neighbor_idx)), idx_min
+            ]
+
             best_cost = np.min(swarm.pbest_cost[best_neighbor])
             best_pos = swarm.pbest_pos[best_neighbor]
         except AttributeError:
@@ -89,6 +81,20 @@ class Ring(Topology):
             raise
         else:
             return (best_pos, best_cost)
+
+    def get_neighbor_indices(self, swarm, k):
+        n_particles = swarm.n_particles
+        indicies = np.arange(n_particles)
+        neighbor_idx = []
+        for i in range(n_particles):
+            from_idx = i - k
+            to_idx = i + k + 1
+            neighbor_idx.append(np.take(indicies, range(from_idx, to_idx), mode='wrap'))
+
+        neighbor_idx = np.asarray(neighbor_idx)
+        neighbor_idx = np.delete(neighbor_idx, k, axis=1)
+        return neighbor_idx
+
 
     def compute_velocity(
         self,
