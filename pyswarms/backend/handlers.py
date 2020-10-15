@@ -59,7 +59,7 @@ class HandlerMixin(object):
 
 
 class BoundaryHandler(HandlerMixin):
-    def __init__(self, strategy):
+    def __init__(self, strategy, callback=None):
         """ A BoundaryHandler class
 
         This class offers a way to handle boundary conditions. It contains
@@ -104,6 +104,7 @@ class BoundaryHandler(HandlerMixin):
             call :code:`BoundaryHandler.strategies`
         """
         self.strategy = strategy
+        self.callback = callback
         self.strategies = self._get_all_strategies()
         self.rep = Reporter(logger=logging.getLogger(__name__))
         self.memory = None
@@ -162,6 +163,8 @@ class BoundaryHandler(HandlerMixin):
         bool_lower = position < lb
         new_pos = np.where(bool_lower, lb, position)
         new_pos = np.where(bool_greater, ub, new_pos)
+        if self.callback:
+            self.callback(position, new_pos)
         return new_pos
 
     def reflective(self, position, bounds, **kwargs):
