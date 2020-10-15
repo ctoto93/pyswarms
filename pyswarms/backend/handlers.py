@@ -164,7 +164,7 @@ class BoundaryHandler(HandlerMixin):
         new_pos = np.where(bool_lower, lb, position)
         new_pos = np.where(bool_greater, ub, new_pos)
         if self.callback:
-            self.callback(position, new_pos)
+            self.callback(self.iter, position, new_pos)
         return new_pos
 
     def reflective(self, position, bounds, **kwargs):

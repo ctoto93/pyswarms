@@ -223,6 +223,7 @@ class LocalBestPSO(SwarmOptimizer):
         ftol_history = deque(maxlen=self.ftol_iter)
         for i in self.rep.pbar(iters, self.name) if verbose else range(iters):
             # Compute cost for current position and personal best
+            self.bh.iter = i
             self.swarm.current_cost = compute_objective_function(
                 self.swarm, objective_func, pool=pool, **kwargs
             )
